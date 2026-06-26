@@ -41,7 +41,7 @@ Create and initialise a MultiLevel selection model.
 """
 function multi_level(;
 	cost_cooperativity = 0.1,					# Cost to the individual of cooperating
-	bene_cooperativity = 0.6,					# Benefit of having a cooperating neighbour
+	bene_cooperativity = 0.5,					# Benefit of having a cooperating neighbour
 	prob_dying = 0.1,							# What is the probability of an individual dying?
 	prob_birth = 1.0,							# Probability of being able to give birth
 )

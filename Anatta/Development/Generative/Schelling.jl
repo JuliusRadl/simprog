@@ -9,7 +9,7 @@ Author: Niall Palfreyman (December 2024)
 module Schelling
 
 # To-do: Add graphics backend package
-using Agents, Statistics, .AgentTools
+using Agents
 
 #-----------------------------------------------------------------------------------------
 # Module types:
@@ -37,7 +37,6 @@ Initialise the size, stepping function, properties and initial population of a S
 function schelling( preference=1.0; extent=(60,60))
     # To-do: Define preference as a model property
     properties = Dict(
-        :preference => preference
     )
 
     schelling_model = StandardABM(
@@ -47,11 +46,11 @@ function schelling( preference=1.0; extent=(60,60))
         properties
     )
 
-    # Done: Set n_agents to 80% of the total number of grid points
-    n_agents = round(Int, prod(extent) * 0.8, RoundDown)
+    # To-do: Set n_agents to 80% of the total number of grid points
+    n_agents = 1
     for n in 1:n_agents
         # To-do: Place Persons of random tribe
-        add_agent_single!( schelling_model; tribe=mod(n, 2))
+        add_agent_single!( schelling_model; tribe=0)
     end
 
     return schelling_model
@@ -77,12 +76,10 @@ function agent_step!( me::Person, model)
     proportion_mytribe = (n_nbrs > 0) ? n_mytribe/n_nbrs : 0.0
 
     # To-do: Decide how to react
-    me.comfort = proportion_mytribe ≥ model.preference
+    me.comfort = proportion_mytribe ≥ 1.0
 
     # To-do: If uncomfortable, jump to a random empty grid location
-    if (me.comfort == false)
-        move_agent_single!(me, model)
-    end
+
     return
 end
 
@@ -138,25 +135,13 @@ function demo(preference=1.0)
     abm = schelling(preference)
 
     # To-do: Define tribe position data
-    xpos(agent) = agent.pos[1]
-    tribe_0_x(agent) = agent.tribe == 0 ? agent.pos[1] : 0
-    tribe_1_x(agent) = agent.tribe == 1 ? agent.pos[1] : 0
-    partial_mean(data) = begin
-        v = collect(data)
-        mean(v[v .!= 0])
-    end
-    adata = [(:comfort, sum), (tribe_0_x, partial_mean), (tribe_1_x, partial_mean)]
-    agent_df, model_df = run!( abm, 99; adata)
+    adata = [(:comfort, sum)]
+    agent_df, model_df = run!( abm, 9; adata)
     agent_df
 
     # To-do: Generate video output
 
     # To-do: Create an exploratory playground
-    playground, _ = abmplayground( schelling;
-        agent_size = 10, agent_color = tribecolor, agent_marker = tribemarker,
-        params = Dict( :preference => 0.0:0.01:1.0)
-    )
-    display(playground)
 
 end
 

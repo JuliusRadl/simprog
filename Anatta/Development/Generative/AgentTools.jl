@@ -12,8 +12,9 @@ using Agents, GLMakie, GeometryBasics, Observables
 
 import InteractiveUtils:@which
 
-export abmplayground, multicoloured, dejong2, diffuse4, diffuse4!, diffuse8, diffuse8!,
-		gradient, mean, norm, size, spectrum, std, turn!, left!, right!, wiggle!, valleys, wedge
+export abmplayground, multicoloured, dejong2, diffuse4, diffuse4!, diffuse8, diffuse8!, gradient,
+		mean, norm, size, spectrum, std, spiky, turn!, left!, right!, wiggle!, valleys, wedge,
+		quotation, quot_alphabet
 
 #-----------------------------------------------------------------------------------------
 # Module data:
@@ -32,6 +33,34 @@ const spectrum = [:darkblue,:blue,:green,:violet,:crimson,:red,:orange,:yellow,:
 Basic wedge shape for use in wedge() function.
 """
 const wejj = [[1,0],[-0.5,0.5],[-0.5,-0.5]]
+
+#-----------------------------------------------------------------------------------------
+"""
+	quotation
+
+Target string for testing genetic exploration processes, adapted from Kant's Critique of
+Pure Reason.
+"""
+const quotation = Char.([
+	84, 119, 111, 32, 116, 104, 105, 110, 103, 115, 32, 102, 105, 108, 108, 32, 116, 104,
+	101, 32, 109, 105, 110, 100, 32, 119, 105, 116, 104, 32, 101, 118, 101, 114, 32, 110,
+	101, 119, 32, 97, 110, 100, 32, 105, 110, 99, 114, 101, 97, 115, 105, 110, 103, 32, 97,
+	100, 109, 105, 114, 97, 116, 105, 111, 110, 10, 97, 110, 100, 32, 97, 119, 101, 44, 32,
+	116, 104, 101, 32, 109, 111, 114, 101, 32, 111, 102, 116, 101, 110, 32, 97, 110, 100,
+	32, 115, 116, 101, 97, 100, 105, 108, 121, 32, 119, 101, 32, 114, 101, 102, 108, 101,
+	99, 116, 32, 117, 112, 111, 110, 32, 116, 104, 101, 109, 58, 32, 116, 104, 101, 10,
+	115, 116, 97, 114, 114, 121, 32, 104, 101, 97, 118, 101, 110, 115, 32, 97, 98, 111,
+	118, 101, 32, 109, 101, 32, 97, 110, 100, 32, 116, 104, 101, 32, 102, 114, 101, 101,
+	100, 111, 109, 32, 116, 111, 32, 99, 104, 111, 111, 115, 101, 32, 119, 105, 116, 104,
+	105, 110, 32, 109, 101, 46
+])
+
+"""
+	quot_alphabet
+
+Collection of characters contained in the Kant quotation.
+"""
+const quot_alphabet = [['\n',' ','!','(',')',',','-','.',';',':','\"','\''];'A':'Z';'a':'z']
 
 #-----------------------------------------------------------------------------------------
 # Module methods:
@@ -72,6 +101,32 @@ Calculate the standard deviation of the values contained in the array or tuple a
 function std( arr)
 	avg = mean(arr)
 	sqrt(mean((arr.-avg).^2))
+end
+
+#--------------------------------------------------------------------------------------------------
+"""
+	spiky( x::Real, spikiness::Real=0.0)
+
+Return a value val in [0,1], where:
+-   val is a smooth, monotone function of x for spikiness in (0,1),
+-   spikiness==0 => val==x, and
+-   spikiness==1 => val==delta(x-1) (ie, 0 for x<1, and 1 for x==1).
+
+spiky() is useful for creating spiky fitness landscapes, where the fitness of an agent is a function
+f(x) (in [0,1]) of some variable x (eg, distance to a target), and the abruptness of the composite
+fitness function spiky(f(x), spikiness) rises as the spikiness parameter increases from 0 to 1.
+"""
+function spiky( x::Real, spikiness::Real=0.0) :: Float64
+	x, spikiness = clamp.( (x,spikiness), 0.0, 1.0)
+    if spikiness == 0
+        return x
+    elseif spikiness == 1
+        return x < 1 ? 0.0 : 1.0
+    elseif x <= spikiness
+         return 0.0
+    else
+        return ((x-spikiness)/(1-spikiness))^2
+    end
 end
 
 #-----------------------------------------------------------------------------------------

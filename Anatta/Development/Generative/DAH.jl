@@ -106,7 +106,7 @@ Calculate the cadherin stickiness between two cadherin classes, assuming the giv
 of possible adherin classes. This formula is provisional and VERY suspicious!
 """
 function  stickiness( cad1, cad2, nadherins)
-	1 - (abs(cad1 - cad2) + cad1 + cad2) / nadherins
+	1 - (2abs(cad1 - cad2) + cad1 + cad2) / 2nadherins
 end
 
 #-----------------------------------------------------------------------------------------
