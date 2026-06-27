@@ -42,18 +42,18 @@ extent = (60, 60)
 - continous agents also store velocity (direction in which to move and face ==
 a unit vector where its length represents its speed and its angle represents the
 direction)
-```julia
-# 2nd part it anonymous function being passed argument (anonymous function)(argument)
-vel = ecosys.v0 * rand() * (θ->[cos(θ),sin(θ)])(2π*rand())
-# rotate agent by random angle delta up to 12 degrees (pi/15)
-Δ = (2rand()-1)*pi/15
-R = [cos(Δ) -sin(Δ)
-        sin(Δ)  cos(Δ)]
-vel = R * collect(vel)
-# More compact:
-cs,sn = (x->(cos(x),sin(x)))((2rand()-1)*pi/15)
-vel = [cs -sn;sn cs]*collect(vel)
-```
+    ```julia
+    # 2nd part it anonymous function being passed argument (anonymous function)(argument)
+    vel = ecosys.v0 * rand() * (θ->[cos(θ),sin(θ)])(2π*rand())
+    # rotate agent by random angle delta up to 12 degrees (pi/15)
+    Δ = (2rand()-1)*pi/15
+    R = [cos(Δ) -sin(Δ)
+            sin(Δ)  cos(Δ)]
+    vel = R * collect(vel)
+    # More compact:
+    cs,sn = (x->(cos(x),sin(x)))((2rand()-1)*pi/15)
+    vel = [cs -sn;sn cs]*collect(vel)
+    ```
 - Properties can be added in struct constructor in a dictionary 
 - (there is a distinction between the properties of a struct and the property
 :properties of an abm model! abm models overwrite getproperty() to target the
@@ -65,7 +65,55 @@ property :properties instead of the real struct properties)
 # all they do is in this style:
 action!(agent, model)
 ```
-- 
+- add new properties to agents
+    - define them in the struct
+        ```julia
+        @agent struct Boid(ContinuousAgent{2,Float64})
+            speed::Float64					# Speed of this Boid
+        end
+        ```
+    - add them to the model
+        ```julia
+        function fields(;
+            extent	= (50, 50),		# Dimensions of the world
+            dt		= 0.1,			# Time step
+            dcAMP	= 1.0,			# Deposition rate of cAMP
+            ΛcAMP	= 0.0,			# Diffusion rate of cAMP
+            αcAMP	= 0.0,			# Evaporation rate of cAMP
+            preference = 0.001,
+            aversion = false	
+        )
+        # Create the Fields space, properties and model:
+        model = StandardABM( SlimeMould, ContinuousSpace(extent; spacing=1.0);
+            agent_step!, model_step!,
+            properties = Dict(		# Model properties applying to all SlimeMoulds:
+                :dt			=> dt,
+                :dcAMP		=> dcAMP,
+                :ΛcAMP		=> ΛcAMP,
+                :αcAMP		=> αcAMP,
+                :cAMP		=> zeros(Float64, extent),	# Heatmap of cAMP at each location in world
+                :preference => preference,
+                :aversion => aversion
+            )
+        )
+        ```
+    - add them to add_agent!()
+        ```julia
+        for _ in 1:5
+            theta = 2π*rand()								# Random angle
+            add_agent!( model, (cos(theta), sin(theta)), preference, aversion)
+        end
+        ```
+    - add them as sliders to your demo
+        ```julia
+        params = Dict(			
+            :ΛcAMP	=> 0:0.01:0.1,
+            :αcAMP	=> 0:0.001:0.01,
+            :preference => 0:0.001:1.0,
+            :aversion => 0:1
+        )
+        ```
+
 
 ## Initialise Agent
 ```julia
@@ -159,6 +207,22 @@ or from AgentTools (multicoloured())
 - ABMObersable is used to regenerate plots automatically on step (it's the second
 return value of abmplayground)
 
+## Field Diffusion, Gradients
+- circshift() is used to shift a matrix in a specific direction
+```julia
+# shifts matrix f by one in the second dimension (columns) (first dimension = rows)
+F = circshift(F, (0, 1))
+# also works in single dimension (here its a regular column vector)
+S = circshift(S, 1)
+```
+- AgentTools.gradient() applies central difference scheme (numeric approximation
+of derivative) to find gradient (get field values in each cardinal direction, then
+subtract top from bottom and left from right to get direction in which it increases
+the most)
+- **Diffraction rate lambda** tells us how much every cell distributes of its field
+quantity to each neighboring cell and also receives that fraction from each of its
+neighbors
+
 # Theoretical
 
 ## Generative Science:
@@ -210,3 +274,13 @@ gezeigt wird. **Mit den richtigen Einstellungen** schwingt die Population auch =
 - Welches kollektive Verhalten der Schildkröten können wir hier beobachten, welches
 aus den Interaktionen individueller Agenten entsteht? Dass die Zahl der Agenten und Algen konstant bleibt
 - Was muss gelten, damit Embodiment gewährleistet ist? Das Verhalten muss kollektiv sein, und nicht vorgegeben
+
+## Fields
+- are their own entity
+- provide useful information to organisms that they use to guide their behavior
+- interaction between agents and fields creates niche
+
+# Stabilisation
+- Provided some non-local field (such as the twig) is present that can link together the
+influence of small, randomly occurring fluctuations in the environment, this field can
+consolidate these fluctuations into larger scale stability.
