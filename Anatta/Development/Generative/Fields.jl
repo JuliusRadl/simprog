@@ -12,7 +12,7 @@ module Fields
 
 include( "../../Development/Generative/AgentTools.jl")
 
-using Agents, GLMakie, .AgentTools
+using Agents, GLMakie, .AgentTools, LinearAlgebra
 
 #-----------------------------------------------------------------------------------------
 # Module types:
@@ -24,6 +24,8 @@ An extremely simple agent that just wanders around the world, endlessly depositi
 Adenosine-MonoPhosphate (cAMP) into its environment.
 """
 @agent struct SlimeMould(ContinuousAgent{2,Float64})
+	preference::Float64		# how much to turn towards high/low cAMP concentration
+	aversion::Bool			# if low cAMP is preferred
 end
 
 #-----------------------------------------------------------------------------------------
@@ -40,6 +42,8 @@ function fields(;
 	dcAMP	= 1.0,			# Deposition rate of cAMP
 	ΛcAMP	= 0.0,			# Diffusion rate of cAMP
 	αcAMP	= 0.0,			# Evaporation rate of cAMP
+	preference = 0.001,
+	aversion = false	
 )
 	# Create the Fields space, properties and model:
 	model = StandardABM( SlimeMould, ContinuousSpace(extent; spacing=1.0);
@@ -49,14 +53,16 @@ function fields(;
 			:dcAMP		=> dcAMP,
 			:ΛcAMP		=> ΛcAMP,
 			:αcAMP		=> αcAMP,
-			:cAMP		=> zeros(Float64, extent)	# Heatmap of cAMP at each location in world
+			:cAMP		=> zeros(Float64, extent),	# Heatmap of cAMP at each location in world
+			:preference => preference,
+			:aversion => aversion
 		)
     )
 
 	# Insert five SlimeMoulds at random points in the world, facing randomly:
 	for _ in 1:5
 		theta = 2π*rand()								# Random angle
-		add_agent!( model, (cos(theta), sin(theta)))
+		add_agent!( model, (cos(theta), sin(theta)), preference, aversion)
 	end
 
 	return model
@@ -75,7 +81,28 @@ function agent_step!( slimy, model)
 	model.cAMP[idxHere] += model.dcAMP * dt			# Deposit cAMP at current location
 
 	# To-do: Implement niche-construction:
-	wiggle!(slimy, dt)								# Turn a little, then ...
+	#wiggle!(slimy, dt)								# Turn a little, then ...
+
+	# velocity: a vector where its angle is the direction and its length (norm)
+	# is its speed
+	vel = slimy.vel
+	speed = AgentTools.norm(vel)
+	dir = vel ./ speed
+
+	# gradient: the direction in which field value increases the most (also an
+	# angle and a speed, but we are only interested in the angle)
+	gradient = AgentTools.gradient(slimy.pos, model.cAMP, model)
+	gradient = slimy.aversion ? gradient .* -1 : gradient
+	gspeed = AgentTools.norm(gradient)
+	# if gradient is 0 (no increase or decrease in any direction), keep original
+	# direction to avoid dividing by zero
+	gdir = gspeed > 0 ? gradient ./ gspeed : dir
+
+	# create new direction as linear combination of direction and gradient
+	# and adjust to original speed
+	dirnew = LinearAlgebra.normalize((1 - slimy.preference) .* dir .+ slimy.preference .* gdir)
+	slimy.vel = dirnew * speed
+	# update agents facing angle
 	move_agent!(slimy, model, 3)					# step forward with given speed
 end
 
@@ -101,12 +128,14 @@ Create a playground for visualising manipulation of cAMP field by a SlimeMould.
 function demo()
 	params = Dict(												# Sliders:
 		:ΛcAMP	=> 0:0.01:0.1,										# cAMP diffusion rate
-		:αcAMP	=> 0:0.001:0.01										# cAMP evaporation rate
+		:αcAMP	=> 0:0.001:0.01,										# cAMP evaporation rate
+		:preference => 0:0.001:1.0,
+		:aversion => false:true
 	)
 	plotkwargs = (												# Plotting parameters:
 		agent_color=:red, 											# SlimeMould's colour
 		agent_marker=wedge,											# SlimeMould's marker
-		title = "Creation and manipulation of fields",				# Playground title
+		#title = "Creation and manipulation of fields",				# Playground title
 		heatarray=(model->model.cAMP), 								# Background map of cAMP
 		heatkwargs = (colormap=:thermal, colorrange=(0.0,10.0)),	# cAMP intensity colours
         mdata=[(m->mean(m.cAMP))], mlabels=["Mean cAMP density"],	# Mean cAMP density data
