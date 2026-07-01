@@ -1,0 +1,52 @@
+Was ist das Ziel des Programms?
+
+Es gibt einen festgelegten Wert omega. Dieser ist unterschiedlich, für die verschiedenen regimes.
+Omega ist sozusagen das Ziel, an den Ressource ran soll. 
+
+Es gibt die feed-rate, diese fügt ständig neue Ressource hinzu. 
+Ressource zerfällt aber auch natürlich(in time_generator dR = watt.feed ...)
+
+Player:
+Player verbrauchen oder produzieren Ressource(R). Die rate hängt von K und a ab. 
+    -Bei K > 0 verbraucht der Player Ressource
+    -Bei K < 0 produziert der Player Ressource
+        K wird immer in einem bestimmten bereich gehalten von der wrap funktion
+    -a und K skalieren den einluss auf R den ein Player hat
+        -großes a und großes K -> viel Einfluss auf Ressource
+        -kleines a aber großes K -> mäßiger Einfluss
+        -großes a aber kleines K -> mäßiger Einfluss
+        - kleines a und K -> kaum Einfluss
+
+        Einfluss wird in action(p::Player) berechnet
+
+    -a und K sind aber nicht gleich
+        -a ist die Aktivität 
+        -K ist die Stärke/Schwelle(entscheidet ob Ressource aufgenommen oder abgegeben wir)
+            und ab wann der palyer aktiv wird
+            - n entscheidet wie steil der Übergang an der Schwelle ist, wenn der player aktiv ist
+                kleines n-> eher michaelis menten Konstante
+                großes n-> eher die Objektiv funktion von Hinton und Nowlan
+    -wenn a zu hoch oder zu niedrig ist(a muss zwischen 0 und 3 sein)
+        -> agent/player stirbt 
+        -> player wird neu geboren mit einem sehr niedrigen a(A_LWB) und einem Zufälligen K und n
+
+    -in B stehen K und n
+        - man könnte sagen, das ist das verhalten von einem Player
+
+Wie verändert sich a?
+    -a wächst über die Hill antwort
+    -ist das Aktivierungssignal(saturation()) höher als die erhaltungskosten(BETA_A) steigt a sonst fällt a
+
+umso größer die gesamtaktivität ist, desto stärker werden alle gebremst, sodass nicht alle Player gleichzeitig
+sehr aktiv sein können.
+
+
+Wie wird das Ziel Omega erreicht?
+    das passiert in vary und stability
+
+    Die Player haben Einfluss auf R. Falls R sehr nah an omega ist, gibt es kaum bis keine Mutation 
+    in den Playern
+    Ist R weit weg von Omega, werden die Player mutiert -> neue B-Werte. also K und n werden
+    verändert(das verhalten des Players ändert sich).
+        -> So entsteht variation in den Playern, aber wenn sie das richtige verhalten haben, sodass Ressource an omega bleibt,
+        verändern Sie sich nicht mehr

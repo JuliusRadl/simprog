@@ -1,0 +1,26 @@
+Whatworld (sehr langes Programm -> kürzen, relevantes Filtern)
+globale Temperatur wird geregelt von Agenten/Players (keine Julia Agenten nur ein Vektor)
+
+
+demofunktion -> Animation??
+publishfunktion -> statische grafen??
+
+
+kein unnützes Zeug behalten nur weil es in seinem Programm ist
+soll unser Programm werden!!
+Fehler: Methode ändern, aber nicht Kopfkommentar
+
+Es soll eine julia agentenwelt (geometrisch) sein -> Schritt 1 (reproduktion seiner arbeit nur mit Agenten)
+temperatur soll ein lokales Wert sein der von Agenten geändert wird (felder implementieren) -> Schritt 2 
+
+Forschungsfrage: Wie schränkt die variation der temperatur die agenten ein?`
+zB. wenn die örtliche temperatur in der nähe von 1 grad (what.Omega = ideale temp) ist ist die lokale variation der agenten gleich 0
+
+unsere arbeit ist es seine whatworld zu einem programm mit einer ganzen geometrischen welt zu konvertieren
+-> testen ob die adaption auch aufgezeigt wird, wenn temperatur ein dynamisches Feld ist und kein globaler wert
+
+stbilität wird bestimmt durch temp. wenn gleich what.Omega, dann variation 0.
+Ziel: unterschiedliche Agenten haben unterschiedliche Varation.
+methode stability()
+
+--> Kein einfacher Artikel, kein einfaches Projekt, kein einfaches Programm, kein einfaches Projekt

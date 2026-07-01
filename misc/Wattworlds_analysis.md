@@ -85,3 +85,109 @@
 - Temperatur diffundiert und nimmt natürlich ab
 - Agenten bewegen sich
 - Agenten konsumieren und erzeugen die Ressource
+
+## Von oben bis unten
+- Konstanten
+  - alles ist in Konstanten definiert
+  - auch die Beschreibung der Regimes
+- **mutable struct player**
+  - hat
+    - Aktivierung a
+    - Ein "genom" B mit:
+      - Hill Saturation constant K aus [-2, -0.1] und [0.1, 2]
+      - Hill cooperativity constant n zwischen [1, 9]
+    - constructor
+      - mini activation am Anfang
+      - zufälliges K und n
+- **mutable struct wattworld**
+  - Definiert Koordiationsvariablen
+    - Ressourcenlevel R
+    - Feedrate feed
+    - Zielressourcenlevel omega
+    - Das feed/omega regime
+    - und die zeit
+  - hat private backup fields für runge kutta half steps
+    - activation der spieler
+    - aktuelles ressourcen level
+    - aktuelle zeit
+  - hat einen vector players
+    - entspricht der "structure" des Agenten
+  - constructor
+    - performt garbage collection
+    - setzt einen seed für reproducible rng
+    - initialisert neue Spieler
+    - Legt koordiationsvariablen fest
+    - legt placeholder für die backp fields fest
+- **struct snapshot**
+  - zeichnet die player auf
+  - und Ressourcenlevel, Feedrate, Omega und Zeit
+  - benutzt dazu einen copy constructor
+- ! Methoden
+- **action()**
+  - berechnet den absoluten Einfluss eines einzelnen Spielers
+  - für die DGL zur Änderung von a
+- **action(wattworld)**
+  - berechnet die summe des absoluten Einflusses aller Spieler
+  - auch für diese DGL
+- **rk_backup!(wattworld)**
+  - füllt die backup felder von dem struct wattworld mit momentanen a, R und t
+- **rk_restore!**
+  - stellt backup wieder her aus diesen feldern
+  - benutzt pairs, um sich eine schleifenvariable aus watt.players zu schaffen
+- **omega!, feed!**
+  - setzen variablen omega und feed neu
+  - diese setter werden nicht benutzt im ganzen modul => löschen
+- **time_generator(watt)**
+  - setzt omega und feed mit apply_regime!()
+  - zieht zur Lesbarkeit alle a's und K's in Variablen acts und Ks
+  - berechnet in activation den R-abhängigen Aktivierungsterm der DGL zur Änderung von a
+  - und in inhibition den inhibitionsterm
+  - benutzt dabei die hill funktion saturation(R, K)
+  - berechnet die volle differenzialgleichung in da und DR
+  - Könnte einzelne terme noch weiter in funktionen auslagern?
+  - gibt da und DR als Tupel zurück
+- **step!()**
+  - performt einen RK2-Step und speichert Ergebnis gleich wieder in wattworld
+  - macht backup der wattworld parameter
+  - berechnet für den Halfstep Änderungsraten mit time_generator()
+  - berechnet halbe schrittlánge, fügt RoC und Schrittlänge den parametern hinzu
+  - berechnet dann basierend darauf die neuen Änderungsraten
+  - stellt parameter aus backup wieder her
+  - führt fullstep mit ganzen zeitschritt durch
+- **trajectory()**
+  - method header arguments stimmen nciht überein
+  - nimmt eine Dauer T und entwickelt die Wattworld über diese dauer weiter
+  - berechnet anzahl der Zeitschritte
+  - berechnet, bei welcher zeit wir am ende landen
+  - schafft step range mit konkreten zeiten, von anfang bis ende
+  - intialisiert für jeden zeitschritt einen leeren snapshot
+  - speichert gleich den ersten snapshot
+  - iteriert dann vom zweiten bis zum letzten zeitschritt
+    - variiert die wattworld bei instabilität mit vary!()
+    - macht einen step!()
+    - begrenzt das Ressourcenlevel auf [0, 9]
+    - ersetzt alle Spieler mit a außerhalb von [0, 3] (kann man nicht gerade Fortpflanzung nennen)
+    - zeichnet einen Snapshot auf
+  - gibt die snapshots zurück
+- **vary!()**
+  - berechnet instability der wattworld (also wie weit r von omega abweicht)
+  - generiert basierend darauf zufällig die Änderungen für die Genome der Player
+  - benutzt die wrap funktion, um die K's im Rahmen zu halten
+- **stability(watt)**
+  - berechnet stabilität
+  - capture radius: das limit, ab dem minimale stabilität erreicht ist (hier bei einer abweichung von 1)
+  - capture concavity: exponent => wie schnell die stabilität zwischen idealwert und limit abnimmt
+- **apply_regime!()**
+  - setzt bei jedem step feed und omega neu, benutzt nicht die setter
+- report
+  - printet einen info string über die wattworld
+  - und über player mit ausreichend a
+- saturation()
+  - Hill type saturation funktion
+  - fängt Fall K == 0 ab (sollte nicht vorkommen wegen wrap())
+- **demo()**
+  - hat noch keine Agents eingebaut
+  - plottet auch für einzelne spieler (macht keine sinn für viele spieler)
+  - plottet a's für alle spieler
+  - plottet K's und n's nur für spieler, die in der zweiten hälfte der simulation signifikante a's hatten (Kommentar gibt irrtümlich 1/4 an)
+- **publish()**
